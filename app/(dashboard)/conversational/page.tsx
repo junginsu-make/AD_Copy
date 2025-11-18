@@ -189,7 +189,55 @@ export default function ConversationalPage() {
                         : "bg-gray-100 text-gray-800"
                     }`}
                   >
-                    <div className="whitespace-pre-wrap">{message.content}</div>
+                    {message.role === "assistant" ? (
+                      <div className="space-y-2">
+                        {(() => {
+                          // ---카피--- 와 --------- 사이의 카피 블록 완전 제거
+                          let cleanedContent = message.content;
+                          
+                          // 카피 블록 제거 (여러 패턴 시도)
+                          cleanedContent = cleanedContent.replace(/---카피---[\s\S]*?-{5,}/g, '');
+                          cleanedContent = cleanedContent.replace(/---카피---[\s\S]*?-{3,}/g, '');
+                          
+                          // 빈 줄 정리
+                          const lines = cleanedContent.split('\n').filter(line => {
+                            const trimmed = line.trim();
+                            // 구분선만 있는 줄 제거
+                            if (trimmed.match(/^-{3,}$/)) return false;
+                            // 카피라는 단어만 있는 줄 제거
+                            if (trimmed === '카피') return false;
+                            return true;
+                          });
+                          
+                          return lines.map((line, idx) => {
+                            const trimmed = line.trim();
+                            if (!trimmed) return <div key={idx} className="h-1" />;
+                            
+                            // 제목 (** 또는 ###)
+                            if (trimmed.startsWith('**') || trimmed.startsWith('###')) {
+                              const text = trimmed.replace(/^###\s*/, '').replace(/\*\*/g, '');
+                              return <div key={idx} className="font-semibold text-sm mt-2 mb-1">{text}</div>;
+                            }
+                            
+                            // 리스트
+                            if (/^\d+\./.test(trimmed) || trimmed.startsWith('-')) {
+                              const text = trimmed.replace(/^\d+\.\s*/, '').replace(/^-\s*/, '');
+                              return (
+                                <div key={idx} className="ml-3 flex items-start text-sm">
+                                  <span className="mr-2 text-purple-500">•</span>
+                                  <span>{text}</span>
+                                </div>
+                              );
+                            }
+                            
+                            // 일반 텍스트
+                            return <div key={idx} className="text-sm leading-relaxed">{line}</div>;
+                          });
+                        })()}
+                      </div>
+                    ) : (
+                      <div className="whitespace-pre-wrap">{message.content}</div>
+                    )}
                     
                     {/* 카피가 있는 경우 표시 */}
                     {message.copies && message.copies.length > 0 && (
