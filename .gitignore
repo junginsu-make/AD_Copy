@@ -1,0 +1,104 @@
+# 의존성
+/node_modules
+/.pnp
+.pnp.js
+package-lock.json
+
+# 테스트
+/coverage
+
+# Next.js
+/.next/
+/out/
+
+# 프로덕션
+/build
+
+# 환경 변수 (절대 업로드 금지!)
+.env
+.env*.local
+env.local.txt
+
+# 디버그
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# 로그 파일
+*.log
+server.log
+
+# 테스트 파일
+test*.txt
+test*.ps1
+test*.mjs
+test*.js
+test*.bat
+watch-*.ps1
+*.backup
+
+# Drizzle
+drizzle/
+
+# 임시 파일
+*.tmp
+*.temp
+
+# 배포 스크립트 (로컬 전용)
+start-server.bat
+start-test-server.bat
+auto-setup-and-start.bat
+ONE-CLICK-START.bat
+one-click-start.sh
+restart-server.ps1
+start-new-environment.ps1
+check-environment.bat
+test-complete-system.mjs
+test-gemini-api.mjs
+test-gemini-direct.js
+test-gemini-fixed.ps1
+test-gemini.bat
+test-gemini.ps1
+test-multi-model.ps1
+test-url-analysis.ps1
+
+# 문서 파일 (선택적 - 시스템 문서는 제외)
+fix-users-sequence.sql
+superbase.txt
+url test.txt
+test.txt
+개선_완료_요약.md
+문제해결_가이드.md
+설치_가이드.md
+슈퍼베이스_수동_확인_가이드.md
+슈퍼베이스_연동_체크리스트.md
+시스템_보고서_요약본.md
+시스템_보고서.md
+자동_로그아웃_시스템_가이드.md
+최신_업데이트_내역.md
+최종_개선_완료_보고서.md
+광고_레퍼런스_체크박스_시스템_가이드.md
+JWT_토큰_오류_완전_해결_가이드.md
+Pltt_AD_Copy_최종_개선사항.md
+
+# SQL 마이그레이션 (drizzle이 관리)
+drizzle/
+*.sql
+
+# 시스템 문서 (로컬 전용)
+system docs/

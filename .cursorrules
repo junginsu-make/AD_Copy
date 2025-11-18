@@ -1,0 +1,7 @@
+# Cursor AI 터미널 설정
+
+## PowerShell 인코딩 설정
+$OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+chcp 65001
+
