@@ -4,7 +4,7 @@
  * 개선: HTML 파싱 추가, 품질 필터링 강화, Perplexity 통합
  */
 
-import axios from 'axios';
+// axios 대신 기본 fetch 사용 (undici File 오류 방지)
 import type { IntentData } from "./intent-extraction-service";
 import { PerplexityAdReferenceService } from "./perplexity-ad-reference-service";
 import { db } from "@/src/infrastructure/database";
@@ -323,32 +323,29 @@ export class ProductionAdReferenceService {
       const searchQuery = keywords.join(" ");
       const searchUrl = `https://search.naver.com/search.naver?query=${encodeURIComponent(searchQuery)}`;
       
-      // Firecrawl API로 Naver 검색 결과 스크래핑 (HTML 포함)
-      const response = await axios.post(
-        'https://api.firecrawl.dev/v0/scrape',
-        {
+      // Firecrawl API로 Naver 검색 결과 스크래핑 (fetch 사용)
+      const response = await fetch('https://api.firecrawl.dev/v0/scrape', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.firecrawlApiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
           url: searchUrl,
           formats: ['markdown', 'html'],
-          onlyMainContent: false, // 파워링크는 사이드에 있을 수 있음
+          onlyMainContent: false,
           waitFor: 3000
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${this.firecrawlApiKey}`,
-            'Content-Type': 'application/json'
-          },
-          timeout: 30000
-        }
-      );
+        })
+      });
 
-      // 응답 구조 확인
-      if (!response.data) {
-        console.warn("Naver 광고: 응답 데이터 없음");
+      if (!response.ok) {
+        console.warn("Naver 광고: API 호출 실패", response.status);
         return [];
       }
 
-      const markdown = response.data?.data?.markdown || response.data?.markdown || "";
-      const html = response.data?.data?.html || response.data?.html || "";
+      const data = await response.json();
+      const markdown = data?.data?.markdown || data?.markdown || "";
+      const html = data?.data?.html || data?.html || "";
       
       if (!markdown && !html) {
         console.warn("Naver 광고: 마크다운/HTML 데이터 없음");
@@ -413,33 +410,30 @@ export class ProductionAdReferenceService {
       
       console.log(`  Google 검색 쿼리: "${searchQuery}"`);
       
-      // Firecrawl API로 Google 검색 결과 스크래핑 (HTML 포함)
-      const response = await axios.post(
-        'https://api.firecrawl.dev/v0/scrape',
-        {
+      // Firecrawl API로 Google 검색 결과 스크래핑 (fetch 사용)
+      const response = await fetch('https://api.firecrawl.dev/v0/scrape', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.firecrawlApiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
           url: searchUrl,
           formats: ['markdown', 'html'],
-          onlyMainContent: false, // 광고는 사이드에 있을 수 있음
-          waitFor: 5000, // 광고 로딩 충분히 대기
-          includeTags: ['div', 'span', 'a'], // 광고 관련 태그 포함
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${this.firecrawlApiKey}`,
-            'Content-Type': 'application/json'
-          },
-          timeout: 30000
-        }
-      );
+          onlyMainContent: false,
+          waitFor: 5000,
+          includeTags: ['div', 'span', 'a']
+        })
+      });
 
-      // 응답 구조 확인
-      if (!response.data) {
-        console.warn("Google 광고: 응답 데이터 없음");
+      if (!response.ok) {
+        console.warn("Google 광고: API 호출 실패", response.status);
         return [];
       }
 
-      const markdown = response.data?.data?.markdown || response.data?.markdown || "";
-      const html = response.data?.data?.html || response.data?.html || "";
+      const data = await response.json();
+      const markdown = data?.data?.markdown || data?.markdown || "";
+      const html = data?.data?.html || data?.html || "";
       
       if (!markdown && !html) {
         console.warn("Google 광고: 마크다운/HTML 데이터 없음");
