@@ -8,7 +8,10 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   experimental: {
-    serverComponentsExternalPackages: ['cheerio'],
+    serverComponentsExternalPackages: ['cheerio', 'undici'],
+  },
+  serverRuntimeConfig: {
+    // File 객체 폴리필
   },
 };
 
