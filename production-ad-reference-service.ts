@@ -4,8 +4,21 @@
  * 개선: HTML 파싱 추가, 품질 필터링 강화, Perplexity 통합
  */
 
+// EC2 배포 시 undici File 객체 오류 방지
+if (typeof globalThis !== 'undefined') {
+  if (typeof globalThis.File === 'undefined') {
+    (globalThis as any).File = class File extends Blob {
+      constructor(fileBits: BlobPart[], fileName: string, options?: FilePropertyBag) {
+        super(fileBits, options);
+      }
+    };
+  }
+  if (typeof globalThis.FormData === 'undefined') {
+    (globalThis as any).FormData = class FormData {};
+  }
+}
+
 import axios from 'axios';
-// cheerio 사용 안 함 (EC2 배포 시 File 객체 오류)
 import type { IntentData } from "./intent-extraction-service";
 import { PerplexityAdReferenceService } from "./perplexity-ad-reference-service";
 import { db } from "@/src/infrastructure/database";
