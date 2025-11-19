@@ -4,17 +4,8 @@
  * 개선: HTML 파싱 추가, 품질 필터링 강화, Perplexity 통합
  */
 
-// Node.js 환경에서 File 객체 polyfill
-if (typeof global !== 'undefined' && typeof global.File === 'undefined') {
-  (global as any).File = class File {
-    constructor(bits: any[], name: string, options?: any) {
-      return new Blob(bits, options);
-    }
-  };
-}
-
 import axios from 'axios';
-import * as cheerio from 'cheerio';
+// cheerio 사용 안 함 (EC2 배포 시 File 객체 오류)
 import type { IntentData } from "./intent-extraction-service";
 import { PerplexityAdReferenceService } from "./perplexity-ad-reference-service";
 import { db } from "@/src/infrastructure/database";
@@ -506,51 +497,11 @@ export class ProductionAdReferenceService {
   }
 
   /**
-   * Google 광고 HTML 파싱 (개선: Cheerio 사용)
+   * Google 광고 HTML 파싱 (정규식 사용)
    */
   private parseGoogleAdsFromHTML(html: string, limit: number): AdReference[] {
-    const ads: AdReference[] = [];
-    
-    try {
-      const $ = cheerio.load(html);
-      
-      // Google 광고 영역 선택자들
-      // 광고는 "Ad" 라벨이 있는 영역에 있음
-      $('[data-text-ad], .uEierd, .commercial-unit').each((idx, elem) => {
-        if (ads.length >= limit) return false;
-        
-        const $elem = $(elem);
-        const headline = $elem.find('.v5yQqb, .LC20lb, h3').first().text().trim();
-        const description = $elem.find('.MUxGbd, .VwiC3b, .s').first().text().trim();
-        const url = $elem.find('a').first().attr('href') || '';
-        
-        // 광고 라벨 확인
-        const hasAdLabel = $elem.text().includes('Ad') || 
-                          $elem.text().includes('광고') || 
-                          $elem.closest('[data-text-ad]').length > 0;
-        
-        if (hasAdLabel && headline.length > 5) {
-          ads.push(this.createAdReference({
-            headline: headline.substring(0, 60),
-            description: description.substring(0, 150),
-            url: url.startsWith('http') ? url : `https://www.google.com${url}`
-          }, 'google'));
-        }
-      });
-      
-      // 마크다운에서도 추가 시도 (HTML 파싱이 부족한 경우)
-      if (ads.length < limit) {
-        const markdown = this.htmlToMarkdown(html);
-        const markdownAds = this.parseGoogleAdsFromMarkdown(markdown, limit - ads.length);
-        ads.push(...markdownAds);
-      }
-    } catch (error) {
-      console.warn("Google HTML 파싱 실패, 마크다운으로 폴백:", error);
-      const markdown = this.htmlToMarkdown(html);
-      return this.parseGoogleAdsFromMarkdown(markdown, limit);
-    }
-    
-    return ads;
+    // HTML에서 텍스트만 추출하여 마크다운 파싱 사용
+    return this.parseGoogleAdsFromMarkdown(html, limit);
   }
 
   /**
@@ -670,58 +621,11 @@ export class ProductionAdReferenceService {
   }
 
   /**
-   * Naver 광고 HTML 파싱 (개선: Cheerio 사용)
+   * Naver 광고 HTML 파싱 (정규식 사용)
    */
   private parseNaverAdsFromHTML(html: string, limit: number): AdReference[] {
-    const ads: AdReference[] = [];
-    
-    try {
-      const $ = cheerio.load(html);
-      
-      // Naver 파워링크 광고 영역 선택
-      $('.ad_area, .power_link, [class*="ad"]').each((idx, elem) => {
-        if (ads.length >= limit) return false;
-        
-        const $elem = $(elem);
-        const headline = $elem.find('.ad_tit, .power_link_title, a').first().text().trim();
-        const description = $elem.find('.ad_dsc, .power_link_desc, .desc').first().text().trim();
-        const url = $elem.find('a').first().attr('href') || '';
-        
-        // 파워링크 확인 (광고 키워드 포함)
-        const isAd = $elem.text().includes('파워링크') || 
-                    $elem.text().includes('광고') ||
-                    $elem.hasClass('ad_area') ||
-                    $elem.attr('class')?.includes('ad');
-        
-        // UI 요소 제외
-        const isUIElement = headline.includes('메뉴') || 
-                           headline.includes('도움말') ||
-                           headline.includes('자동저장') ||
-                           headline.includes('자세히') ||
-                           headline.includes('로그인');
-        
-        if (isAd && !isUIElement && headline.length > 10) {
-          ads.push(this.createAdReference({
-            headline: headline.substring(0, 60),
-            description: description.substring(0, 150),
-            url: url.startsWith('http') ? url : `https://search.naver.com${url}`
-          }, 'naver'));
-        }
-      });
-      
-      // 마크다운에서도 추가 시도
-      if (ads.length < limit) {
-        const markdown = this.htmlToMarkdown(html);
-        const markdownAds = this.parseNaverAdsFromMarkdown(markdown, limit - ads.length);
-        ads.push(...markdownAds);
-      }
-    } catch (error) {
-      console.warn("Naver HTML 파싱 실패, 마크다운으로 폴백:", error);
-      const markdown = this.htmlToMarkdown(html);
-      return this.parseNaverAdsFromMarkdown(markdown, limit);
-    }
-    
-    return ads;
+    // HTML에서 텍스트만 추출하여 마크다운 파싱 사용
+    return this.parseNaverAdsFromMarkdown(html, limit);
   }
 
   /**
@@ -842,16 +746,11 @@ export class ProductionAdReferenceService {
   }
 
   /**
-   * HTML을 간단한 마크다운으로 변환 (폴백용)
+   * HTML을 텍스트로 변환 (정규식 사용)
    */
   private htmlToMarkdown(html: string): string {
-    try {
-      const $ = cheerio.load(html);
-      // 간단한 변환: 텍스트만 추출
-      return $('body').text();
-    } catch {
-      return '';
-    }
+    // HTML 태그 제거
+    return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
   }
 
   /**
