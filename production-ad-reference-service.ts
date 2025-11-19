@@ -1091,7 +1091,7 @@ export class ProductionAdReferenceService {
             ...(intent.keywords || []),
             intent.productName,
             intent.targetAudience
-          ].filter(Boolean),
+          ].filter((k): k is string => typeof k === 'string' && k.length > 0),
           copywritingFormula: analysis.formula,
           psychologicalTriggers: analysis.triggers,
           tone: analysis.tone,
